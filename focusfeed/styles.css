@@ -1,0 +1,172 @@
+/* focusfeed/styles.css */
+
+/* Popup Styles */
+body {
+  font-family: sans-serif;
+  width: 280px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+h1 {
+  font-size: 20px;
+  text-align: center;
+  margin: 5px 0 10px 0;
+  color: #2c3e50;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 10px 0 5px 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+  color: #34495e;
+}
+
+.section {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Toggle Switch CSS */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px; /* Smaller width */
+  height: 28px; /* Smaller height */
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 28px; /* Keep it round */
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; /* Smaller circle */
+  width: 20px;  /* Smaller circle */
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2ecc71; /* Green for enabled */
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px); /* Adjust translation distance */
+}
+
+#extensionStatusText {
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+#timeSpentDisplay ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+#timeSpentDisplay li {
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+#timeSpentDisplay p {
+  font-size: 13px;
+  margin: 0;
+  color: #555;
+}
+
+
+button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+#lockFeedButton {
+  background-color: #e74c3c;
+}
+#lockFeedButton:hover {
+  background-color: #c0392b;
+}
+
+/* Styles for the motivational message injected by content.js */
+#focusfeed-motivational-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.97); /* Slightly more opaque */
+  padding: 25px;
+  border: 1px solid #bbb;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+  font-size: 22px; /* Slightly smaller */
+  color: #2c3e50; /* Darker text */
+  z-index: 2147483647; /* Max z-index */
+  text-align: center;
+  max-width: 90%;
+  line-height: 1.6;
+}
+
+/* Styles for hiding elements (can be general or specific) */
+.focusfeed-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Blurring effect (optional, can be applied to body or specific feed containers) */
+.focusfeed-blur-effect {
+  filter: blur(10px) !important;
+  pointer-events: none !important; /* Prevents interaction with blurred elements */
+  overflow: hidden !important; /* Helps contain the blur */
+}

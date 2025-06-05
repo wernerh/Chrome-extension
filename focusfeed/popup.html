@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FocusFeed</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>FocusFeed</h1>
+
+    <div class="section">
+      <label class="toggle-switch">
+        <input type="checkbox" id="extensionEnabledToggle">
+        <span class="slider"></span>
+      </label>
+      <span id="extensionStatusText">Extension Enabled</span>
+    </div>
+
+    <div class="section">
+      <h2>Today's Usage</h2>
+      <div id="timeSpentDisplay">
+        <p>Loading...</p>
+        <!-- Time per site will be injected here by popup.js -->
+      </div>
+    </div>
+
+    <div class="section">
+      <button id="unlockFeedButton">Unlock Feed (5 min)</button>
+      <button id="lockFeedButton" style="display: none;">Lock Feed Now</button>
+    </div>
+
+    <!-- <div class="section">
+      <button id="settingsButton">Settings</button>
+    </div> -->
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
