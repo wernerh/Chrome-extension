@@ -135,10 +135,15 @@ function actualShowFeedImplementation() {
 }
 
 function hideFeed() {
-  if (feedHidden) return; // Already hidden
+  if (feedHidden) { // If already marked as hidden, ensure blur is applied if body doesn't have it
+    if (!document.body.classList.contains('focusfeed-blur-effect')) {
+      document.body.classList.add('focusfeed-blur-effect');
+    }
+    return;
+  }
 
   console.log(`FocusFeed: Attempting to hide feed on ${currentSite}`);
-  if (actualHideFeedImplementation()) {
+  if (actualHideFeedImplementation()) { // This hides the specific feed elements
     feedHidden = true;
     // Create and display motivational message container if not already present
     if (!document.getElementById('focusfeed-motivational-message')) {
@@ -147,22 +152,27 @@ function hideFeed() {
       motivationalMessageContainer.textContent = 'Your time is valuable. Do you really want to scroll?';
       document.body.appendChild(motivationalMessageContainer);
     }
+    document.body.classList.add('focusfeed-blur-effect'); // Apply blur
   } else {
-     // If hiding failed, still show message as an overlay
+     // If hiding specific feed elements failed, still show message and apply blur
     if (!document.getElementById('focusfeed-motivational-message')) {
       const motivationalMessageContainer = document.createElement('div');
       motivationalMessageContainer.id = 'focusfeed-motivational-message';
       motivationalMessageContainer.textContent = 'FocusFeed: Trying to hide the feed. Your time is valuable!';
       document.body.appendChild(motivationalMessageContainer);
     }
+    document.body.classList.add('focusfeed-blur-effect'); // Apply blur
   }
 }
 
 function showFeed() {
-  if (!feedHidden) return; // Already visible or not managed by us
+  // If not hidden by us, or if blur is already removed, do nothing extra for this call.
+  if (!feedHidden && !document.body.classList.contains('focusfeed-blur-effect')) return;
+
 
   console.log(`FocusFeed: Attempting to show feed on ${currentSite}`);
-  actualShowFeedImplementation();
+  document.body.classList.remove('focusfeed-blur-effect'); // Remove blur first
+  actualShowFeedImplementation(); // This shows the specific feed elements
   feedHidden = false;
 
   const messageContainer = document.getElementById('focusfeed-motivational-message');
@@ -178,37 +188,50 @@ function observeDOMChanges() {
   observer = new MutationObserver((mutationsList, observerInstance) => {
     // We only care if the feed should be hidden but isn't (e.g. new elements loaded)
     // Or if the message is there but feed elements became visible.
-    chrome.storage.local.get(['focusFeedEnabled', 'unlockEndTime'], (result) => {
-      const isEnabled = result.focusFeedEnabled === undefined ? true : result.focusFeedEnabled;
-      const unlockEndTime = result.unlockEndTime || 0;
-      const currentTime = new Date().getTime();
+  chrome.storage.local.get(['focusFeedEnabled', 'unlockEndTime'], (result) => {
+    const isEnabled = result.focusFeedEnabled === undefined ? true : result.focusFeedEnabled;
+    const unlockEndTime = result.unlockEndTime || 0;
+    const currentTime = new Date().getTime();
 
-      if (isEnabled && currentTime > unlockEndTime) {
-        if (!feedHidden) { // If it's supposed to be hidden but isn't marked as such
-            console.log("FocusFeed (Observer): Feed should be hidden, re-applying.");
-            hideFeed();
-        } else { // It is marked as hidden, ensure elements are actually hidden
-            // This check can be expensive, so use sparingly or make it more specific
-            // For now, simply re-apply hideFeed if the message is missing for some reason
-            if (!document.getElementById('focusfeed-motivational-message')) {
-                 console.log("FocusFeed (Observer): Motivational message missing, re-applying hideFeed.");
-                 feedHidden = false; // Force re-evaluation
-                 hideFeed();
-            } else {
-                // If message is there, ensure feed elements are still hidden
-                // This is a bit redundant if hideFeed() was successful and elements are static
-                // But useful for SPAs that might re-render parts.
-                actualHideFeedImplementation();
-            }
-        }
+    if (isEnabled && currentTime > unlockEndTime) { // Feed should be hidden
+      if (!feedHidden) {
+        console.log("FocusFeed (Observer): State indicates feed should be hidden, but not marked. Calling hideFeed().");
+        hideFeed(); // This will apply message, hide elements, and apply body blur.
       } else {
-        // If extension disabled or unlocked, ensure feed is visible
-        if (feedHidden) { // If it's marked as hidden but shouldn't be
-            console.log("FocusFeed (Observer): Feed should be visible, re-applying.");
-            showFeed();
+        // Feed is marked as hidden. Let's ensure consistency.
+        // 1. Ensure message is visible
+        if (!document.getElementById('focusfeed-motivational-message')) {
+          console.log("FocusFeed (Observer): Motivational message missing, re-applying hideFeed.");
+          feedHidden = false; // Force re-evaluation by hideFeed
+          hideFeed(); // This will re-add message and ensure blur.
+        } else {
+          // 2. Message is visible, ensure feed elements are still hidden (SPA might re-render them)
+          actualHideFeedImplementation(); // Re-hide specific feed elements
+          // 3. Ensure body blur is active
+          if (!document.body.classList.contains('focusfeed-blur-effect')) {
+            console.log("FocusFeed (Observer): Body blur missing, re-applying.");
+            document.body.classList.add('focusfeed-blur-effect');
+          }
         }
       }
-    });
+    } else { // Feed should be shown (extension disabled or unlocked)
+      if (feedHidden) {
+        console.log("FocusFeed (Observer): State indicates feed should be shown, but marked hidden. Calling showFeed().");
+        showFeed(); // This will remove message, show elements, and remove body blur.
+      } else {
+        // Feed not marked as hidden. Let's ensure no residual blur.
+        if (document.body.classList.contains('focusfeed-blur-effect')) {
+          console.log("FocusFeed (Observer): Body blur present when it shouldn't be, removing.");
+          document.body.classList.remove('focusfeed-blur-effect');
+        }
+        // Also ensure no residual message if feed is not marked hidden
+        const messageContainer = document.getElementById('focusfeed-motivational-message');
+        if (messageContainer) {
+            console.log("FocusFeed (Observer): Motivational message present when it shouldn't be, removing.");
+            messageContainer.remove();
+        }
+      }
+    }
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
