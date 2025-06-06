@@ -1,4 +1,6 @@
 // focusfeed/popup.js
+let countdownInterval = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   const extensionEnabledToggle = document.getElementById('extensionEnabledToggle');
   const extensionStatusText = document.getElementById('extensionStatusText');
@@ -97,20 +99,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateUnlockButtonVisibility(unlockEndTime) {
+    const lockFeedButton = document.getElementById('lockFeedButton');
+    const unlockFeedButton = document.getElementById('unlockFeedButton');
     const currentTime = new Date().getTime();
+
+    // Clear any existing interval before reassessing state
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+
     if (unlockEndTime && currentTime < unlockEndTime) {
       unlockFeedButton.style.display = 'none';
       lockFeedButton.style.display = 'inline-block';
       lockFeedButton.disabled = false;
-      const remainingTime = Math.ceil((unlockEndTime - currentTime) / (60 * 1000));
-      lockFeedButton.textContent = `Lock Feed Now (${remainingTime}m left)`;
+
+      function updateTimerDisplay() {
+        const now = new Date().getTime();
+        const remainingMilliseconds = unlockEndTime - now;
+
+        if (remainingMilliseconds <= 0) {
+          if (countdownInterval) { // Ensure it's cleared if somehow called externally
+              clearInterval(countdownInterval);
+              countdownInterval = null;
+          }
+          // Timer has expired or was cleared. Re-fetch unlockEndTime to get the true current state.
+          // This is important if the background script cleared the timer.
+          chrome.storage.local.get('unlockEndTime', (result) => {
+              // Call updateUnlockButtonVisibility with potentially new (cleared) unlockEndTime
+              // This will then fall into the 'else' block below if timer is truly gone.
+              updateUnlockButtonVisibility(result.unlockEndTime);
+          });
+          return;
+        }
+
+        const totalSeconds = Math.floor(remainingMilliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const minutesPadded = String(minutes).padStart(2, '0');
+        const secondsPadded = String(seconds).padStart(2, '0');
+
+        lockFeedButton.textContent = `Lock Feed Now (${minutesPadded}:${secondsPadded})`;
+      }
+
+      updateTimerDisplay(); // Call immediately to set the text
+      countdownInterval = setInterval(updateTimerDisplay, 1000);
+
     } else {
+      // No active timer or timer has expired
       unlockFeedButton.style.display = 'inline-block';
       lockFeedButton.style.display = 'none';
-      // Check if extension is enabled before enabling the button
+      // Check if extension is enabled before enabling the unlock button
       chrome.storage.local.get('focusFeedEnabled', (result) => {
          unlockFeedButton.disabled = !(result.focusFeedEnabled === undefined ? true : result.focusFeedEnabled);
       });
+      lockFeedButton.textContent = 'Lock Feed Now'; // Reset text
     }
   }
 
@@ -132,7 +175,22 @@ document.addEventListener('DOMContentLoaded', () => {
           html += "<ul>";
           for (const site in timeLog) {
             const minutes = Math.round(timeLog[site] / (1000 * 60));
-            html += `<li>${site.replace('www.','').replace('.com','').charAt(0).toUpperCase() + site.slice(1).replace('www.','').replace('.com','').substring(1)}: ${minutes} min</li>`;
+            let cleanSite = site;
+            // Remove prefixes
+            cleanSite = cleanSite.replace(/^Nll:/i, '');
+            cleanSite = cleanSite.replace(/^Fw\./i, '');
+            cleanSite = cleanSite.replace(/^Iw\./i, '');
+
+            // Remove www. and .com
+            cleanSite = cleanSite.replace(/^www\./i, '');
+            cleanSite = cleanSite.replace(/\.com$/i, '');
+
+            // Capitalize first letter
+            if (cleanSite.length > 0) {
+              cleanSite = cleanSite.charAt(0).toUpperCase() + cleanSite.slice(1);
+            }
+
+            html += `<li>${cleanSite}: ${minutes} min</li>`;
           }
           html += "</ul>";
         }
@@ -145,11 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Update timer display on lock button every few seconds if popup is open
-  setInterval(() => {
-    chrome.storage.local.get(['focusFeedEnabled','unlockEndTime'], (result) => {
-        if (result.focusFeedEnabled) {
-            updateUnlockButtonVisibility(result.unlockEndTime);
-        }
-    });
-  }, 5000);
+  // setInterval(() => {
+  //   chrome.storage.local.get(['focusFeedEnabled','unlockEndTime'], (result) => {
+  //       if (result.focusFeedEnabled) {
+  //           updateUnlockButtonVisibility(result.unlockEndTime);
+  //       }
+  //   });
+  // }, 5000);
 });
